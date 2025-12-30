@@ -1,0 +1,118 @@
+# ============================================
+#           mTickets - Configuracao
+# ============================================
+
+# Configuracoes do Banco de Dados
+database:
+  # Tipo: sqlite ou mysql
+  type: sqlite
+  
+  # SQLite (padrao) - arquivo sera criado em plugins/mTickets/
+  sqlite:
+    file: tickets.db
+  
+  # MySQL (opcional)
+  mysql:
+    host: localhost
+    port: 3306
+    database: mtickets
+    username: root
+    password: ""
+
+# ============================================
+#         Servidor Web (Painel Admin)
+# ============================================
+web:
+  enabled: true
+  port: 8080
+  # URL base do painel (usado para OAuth callback)
+  # Exemplo: http://seuservidor.com:8080 ou http://192.168.1.100:8080
+  base-url: "http://localhost:8080"
+
+# ============================================
+#           Discord OAuth2
+# ============================================
+discord:
+  enabled: true
+  # Crie uma aplicacao em https://discord.com/developers/applications
+  client-id: "SEU_CLIENT_ID_AQUI"
+  client-secret: "SEU_CLIENT_SECRET_AQUI"
+  
+  # ID do servidor Discord
+  guild-id: "SEU_GUILD_ID_AQUI"
+  
+  # Bot Token (para verificar roles dos membros)
+  bot-token: "SEU_BOT_TOKEN_AQUI"
+  
+  # IDs das roles que podem acessar o painel
+  # Adicione quantas quiser separadas por virgula
+  allowed-roles:
+    - "ID_ROLE_SUPORTE"
+    - "ID_ROLE_ADMIN"
+    - "ID_ROLE_DIRETOR"
+    
+  # Categoria (Channel Category ID) onde os tickets serao criados
+  # Se deixar vazio ou 0, nao cria canais no Discord
+  ticket-category-id: "SEU_CATEGORY_ID_AQUI"
+  
+  # Log Channel (Opcional) - Canal de texto para logs de tickets
+  log-channel-id: "SEU_LOG_CHANNEL_ID_AQUI"
+
+# ============================================
+#              Mensagens
+# ============================================
+messages:
+  prefix: "&8[&bmTickets&8] &7"
+  
+  # Menu
+  menu-title: "&8Abrir Ticket"
+  menu-skull-name: "&a&lAbrir Ticket"
+  menu-skull-lore:
+    - "&7"
+    - "&fClique para abrir um novo"
+    - "&fticket de suporte!"
+    - "&7"
+    - "&eVoce sera atendido em breve"
+    - "&epela nossa equipe."
+    - "&7"
+  
+  # Ticket
+  ticket-opened: "&aTicket #%id% criado com sucesso!"
+  ticket-closed: "&cTicket #%id% foi fechado."
+  ticket-replied: "&aResposta enviada para o ticket #%id%!"
+  ticket-not-found: "&cTicket nao encontrado."
+  
+  # Chat input
+  chat-prompt: "&eDigite sua duvida no chat (ou 'cancelar' para desistir):"
+  chat-cancelled: "&cAbertura de ticket cancelada."
+  chat-timeout: "&cTempo esgotado! Abertura de ticket cancelada."
+  
+  # Staff
+  new-ticket-alert: "&e&l[NOVO TICKET] &fJogador &b%player% &fabriu o ticket &a#%id%"
+  staff-reply-format: "&8[&bSTAFF&8] &f%staff%&7: &f%message%"
+  player-reply-format: "&8[&aTICKET&8] &f%player%&7: &f%message%"
+  
+  # Erros
+  no-permission: "&cVoce nao tem permissao para isso."
+  already-pending: "&cVoce ja tem um ticket pendente. Aguarde a resposta."
+  cooldown: "&cAguarde %time% segundos antes de abrir outro ticket."
+
+# ============================================
+#              Configuracoes
+# ============================================
+settings:
+  # Tempo maximo (segundos) para digitar a mensagem do ticket
+  chat-timeout: 60
+  
+  # Cooldown (segundos) entre tickets do mesmo jogador
+  ticket-cooldown: 300
+  
+  # Maximo de tickets abertos por jogador
+  max-open-tickets: 3
+  
+  # Notificar staff online quando novo ticket for criado
+  notify-staff: true
+  
+  # Som ao criar ticket (nome do som do Minecraft 1.8)
+  sound-on-create: "NOTE_PLING"
+  sound-on-reply: "ORB_PICKUP"

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel - mTickets</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-ticket-alt" style="color: var(--primary);"></i>
+            mTickets
+        </div>
+
+        <div class="user-menu">
+            <div class="user-info">
+                <span id="user-name" class="user-name">Carregando...</span>
+                <span class="user-role">Administrador</span>
+            </div>
+            <img id="user-avatar" src="" alt="Avatar" class="avatar">
+            <button id="logout-btn" class="btn btn-logout" title="Sair">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </nav>
+
+    <div class="main-content">
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon yellow">
+                    <i class="fas fa-folder-open"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Tickets Abertos</h3>
+                    <p id="total-tickets">0</p>
+                </div>
+            </div>
+
+            <div class="stat-card blue">
+                <div class="stat-icon blue">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Tempo Médio</h3>
+                    <p id="stat-avg-time">-- min</p>
+                </div>
+            </div>
+
+            <div class="stat-card green">
+                <div class="stat-icon green">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Resolvidos</h3>
+                    <p id="stat-resolved">--</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-header">
+            <h2 style="font-size: 20px;">Tickets Recentes</h2>
+            <div class="actions">
+                <button id="btn-refresh" class="btn btn-primary" style="padding: 10px 20px;">
+                    <i class="fas fa-sync-alt"></i> Atualizar
+                </button>
+            </div>
+        </div>
+
+        <div id="tickets-container" class="tickets-container">
+            <div class="ticket-item" style="justify-content: center; color: var(--text-muted);">
+                <i class="fas fa-spinner fa-spin" style="margin-right: 10px;"></i> Carregando tickets...
+            </div>
+        </div>
+
+        <div class="pagination" style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+            <button id="prev-page" class="btn"
+                style="background: white; border: 1px solid var(--border); width: auto;">Anterior</button>
+            <span id="page-info" style="display: flex; align-items: center; padding: 0 10px; font-weight: 500;">Página
+                1</span>
+            <button id="next-page" class="btn"
+                style="background: white; border: 1px solid var(--border); width: auto;">Próxima</button>
+        </div>
+    </div>
+
+    <div id="ticket-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modal-title" style="font-size: 18px;">Ticket #000</h2>
+                    <span id="modal-subtitle" style="font-size: 13px; color: var(--text-muted);">Detalhes do
+                        atendimento</span>
+                </div>
+                <button id="close-modal" class="btn"
+                    style="width: 32px; height: 32px; padding: 0; background: transparent;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div id="ticket-messages" class="modal-body">
+            </div>
+
+            <div class="modal-footer">
+                <div class="reply-area">
+                    <textarea id="reply-input" placeholder="Digite sua resposta aqui..."></textarea>
+                    <div class="actions">
+                        <button id="close-ticket" class="btn"
+                            style="background: #FEE2E2; color: #DC2626; width: auto; border: 1px solid #FECACA;">
+                            <i class="fas fa-lock"></i> Fechar Ticket
+                        </button>
+                        <button id="send-reply" class="btn btn-primary" style="width: auto;">
+                            <i class="fas fa-paper-plane"></i> Enviar Resposta
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

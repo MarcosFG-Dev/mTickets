@@ -1,0 +1,26 @@
+name: mTickets
+version: ${project.version}
+main: com.marcosfgdev.mtickets.MTicketsPlugin
+author: MarcosFGDev
+description: Sistema de Tickets com GUI, Painel Web e Discord OAuth2
+api-version: 1.8
+
+commands:
+  ticket:
+    description: Abre o menu de tickets ou gerencia tickets
+    usage: /ticket [admin|responder|fechar|listar]
+    aliases: [tickets, ajuda, suporte, help]
+
+permissions:
+  mtickets.use:
+    description: Permite usar /ticket para abrir tickets
+    default: true
+  mtickets.admin:
+    description: Acesso a comandos administrativos de tickets
+    default: op
+  mtickets.notify:
+    description: Recebe notificacoes de novos tickets
+    default: op
+  mtickets.web:
+    description: Acesso ao painel web
+    default: op
