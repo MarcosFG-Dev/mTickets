@@ -11,6 +11,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.Headers;
 
 import java.io.*;
+import java.net.URI;
 import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.List;
@@ -43,10 +44,9 @@ public class WebRoutes implements HttpHandler {
             return;
         }
 
-        Headers responseHeaders = exchange.getResponseHeaders();
-        responseHeaders.set("Access-Control-Allow-Origin", "*");
-        responseHeaders.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        responseHeaders.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        if (!applyCors(exchange)) {
+            return;
+        }
 
         if ("OPTIONS".equals(method)) {
             exchange.sendResponseHeaders(200, -1);
@@ -115,7 +115,8 @@ public class WebRoutes implements HttpHandler {
 
         String baseUrl = plugin.getConfig().getString("web.base-url");
         String redirectUri = baseUrl + "/api/auth/callback";
-        String authUrl = discord.getAuthorizationUrl(redirectUri);
+        String state = plugin.getSessionManager().createOAuthState();
+        String authUrl = discord.getAuthorizationUrl(redirectUri, state);
 
         redirect(exchange, authUrl);
     }
@@ -124,8 +125,9 @@ public class WebRoutes implements HttpHandler {
         String query = exchange.getRequestURI().getQuery();
         Map<String, String> params = parseQuery(query);
         String code = params.get("code");
+        String state = params.get("state");
 
-        if (code == null || code.isEmpty()) {
+        if (code == null || code.isEmpty() || !plugin.getSessionManager().consumeOAuthState(state)) {
             redirect(exchange, "/login.html?error=no_code");
             return;
         }
@@ -151,7 +153,7 @@ public class WebRoutes implements HttpHandler {
             String token = plugin.getSessionManager().createSession(sessionUser);
 
             Headers headers = exchange.getResponseHeaders();
-            headers.add("Set-Cookie", "session=" + token + "; Path=/; Max-Age=86400; HttpOnly");
+            headers.add("Set-Cookie", buildSessionCookie(token));
 
             redirect(exchange, "/panel.html");
 
@@ -183,7 +185,7 @@ public class WebRoutes implements HttpHandler {
         }
 
         Headers headers = exchange.getResponseHeaders();
-        headers.add("Set-Cookie", "session=; Path=/; Max-Age=0");
+        headers.add("Set-Cookie", buildSessionCookie("", 0));
 
         redirect(exchange, "/login.html");
     }
@@ -367,6 +369,69 @@ public class WebRoutes implements HttpHandler {
     private void redirect(HttpExchange exchange, String location) throws IOException {
         exchange.getResponseHeaders().set("Location", location);
         exchange.sendResponseHeaders(302, -1);
+    }
+
+    private boolean applyCors(HttpExchange exchange) throws IOException {
+        Headers requestHeaders = exchange.getRequestHeaders();
+        Headers responseHeaders = exchange.getResponseHeaders();
+        String origin = requestHeaders.getFirst("Origin");
+        String allowedOrigin = getAllowedOrigin();
+
+        responseHeaders.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        responseHeaders.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        responseHeaders.set("Access-Control-Allow-Credentials", "true");
+
+        if (origin == null || origin.isEmpty()) {
+            responseHeaders.set("Access-Control-Allow-Origin", allowedOrigin);
+            return true;
+        }
+
+        if (!origin.equalsIgnoreCase(allowedOrigin)) {
+            sendError(exchange, 403, "Origin nao permitida");
+            return false;
+        }
+
+        responseHeaders.set("Access-Control-Allow-Origin", allowedOrigin);
+        return true;
+    }
+
+    private String getAllowedOrigin() {
+        try {
+            String configured = plugin.getConfig().getString("web.base-url", "http://localhost:8080");
+            URI uri = URI.create(configured);
+            if (uri.getScheme() == null || uri.getHost() == null) {
+                return "http://localhost:8080";
+            }
+
+            int port = uri.getPort();
+            String hostPort = port == -1 ? uri.getHost() : uri.getHost() + ":" + port;
+            return uri.getScheme() + "://" + hostPort;
+        } catch (Exception e) {
+            return "http://localhost:8080";
+        }
+    }
+
+    private String buildSessionCookie(String token) {
+        int maxAge = plugin.getConfig().getInt("web.session.ttl-seconds", 86400);
+        return buildSessionCookie(token, maxAge);
+    }
+
+    private String buildSessionCookie(String token, int maxAge) {
+        String sameSite = plugin.getConfig().getString("web.session.same-site", "Lax");
+        boolean secure = plugin.getConfig().getBoolean("web.session.secure-cookie", false);
+
+        StringBuilder cookie = new StringBuilder();
+        cookie.append("session=").append(token)
+                .append("; Path=/")
+                .append("; Max-Age=").append(Math.max(0, maxAge))
+                .append("; HttpOnly")
+                .append("; SameSite=").append(("Strict".equalsIgnoreCase(sameSite) ? "Strict" : "Lax"));
+
+        if (secure) {
+            cookie.append("; Secure");
+        }
+
+        return cookie.toString();
     }
 
     private void handleGetStats(HttpExchange exchange) throws IOException {

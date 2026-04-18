@@ -47,6 +47,7 @@ public class WebServer {
     public void stop() {
         if (server != null) {
             server.stop(0);
+            server = null;
         }
     }
 

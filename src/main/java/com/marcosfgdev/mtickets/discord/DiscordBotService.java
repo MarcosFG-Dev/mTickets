@@ -14,8 +14,7 @@ import org.bukkit.Bukkit;
 
 import javax.security.auth.login.LoginException;
 import java.awt.*;
-import java.util.Collections;
-import java.util.EnumSet;
+import java.util.concurrent.TimeUnit;
 
 public class DiscordBotService extends ListenerAdapter {
 
@@ -51,7 +50,41 @@ public class DiscordBotService extends ListenerAdapter {
         } catch (LoginException e) {
             plugin.getLogger().severe("Erro de Login no Discord Bot: " + e.getMessage());
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            Thread.currentThread().interrupt();
+            plugin.getLogger().warning("Inicializacao do Discord Bot interrompida.");
+        }
+    }
+
+    public void startWithRetry() {
+        int maxAttempts = plugin.getConfig().getInt("discord.connection.max-attempts", 5);
+        long initialDelaySeconds = plugin.getConfig().getLong("discord.connection.initial-delay-seconds", 2L);
+        long maxDelaySeconds = plugin.getConfig().getLong("discord.connection.max-delay-seconds", 30L);
+
+        long delaySeconds = Math.max(1L, initialDelaySeconds);
+        for (int attempt = 1; attempt <= Math.max(1, maxAttempts); attempt++) {
+            if (Thread.currentThread().isInterrupted()) {
+                return;
+            }
+
+            start();
+            if (isEnabled()) {
+                return;
+            }
+
+            if (attempt == maxAttempts) {
+                plugin.getLogger().severe("Discord Bot nao conectou apos " + attempt + " tentativas.");
+                return;
+            }
+
+            plugin.getLogger().warning("Tentativa " + attempt + " falhou. Nova tentativa em " + delaySeconds + "s.");
+            try {
+                TimeUnit.SECONDS.sleep(delaySeconds);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+
+            delaySeconds = Math.min(delaySeconds * 2L, Math.max(1L, maxDelaySeconds));
         }
     }
 

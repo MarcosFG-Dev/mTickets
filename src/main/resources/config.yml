@@ -28,6 +28,15 @@ web:
   # URL base do painel (usado para OAuth callback)
   # Exemplo: http://seuservidor.com:8080 ou http://192.168.1.100:8080
   base-url: "http://localhost:8080"
+  session:
+    # TTL da sessao web em segundos
+    ttl-seconds: 86400
+    # TTL do state OAuth em segundos
+    oauth-state-ttl-seconds: 300
+    # Ative em producao quando usar HTTPS
+    secure-cookie: false
+    # Lax ou Strict
+    same-site: "Lax"
 
 # ============================================
 #           Discord OAuth2
@@ -57,6 +66,10 @@ discord:
   
   # Log Channel (Opcional) - Canal de texto para logs de tickets
   log-channel-id: "SEU_LOG_CHANNEL_ID_AQUI"
+  connection:
+    max-attempts: 5
+    initial-delay-seconds: 2
+    max-delay-seconds: 30
 
 # ============================================
 #              Mensagens
