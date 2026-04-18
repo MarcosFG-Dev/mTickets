@@ -37,11 +37,12 @@ public class DiscordOAuthService {
         this.allowedRoles = plugin.getConfig().getStringList("discord.allowed-roles");
     }
 
-    public String getAuthorizationUrl(String redirectUri) {
+    public String getAuthorizationUrl(String redirectUri, String state) {
         return OAUTH_AUTHORIZE + "?client_id=" + clientId
                 + "&redirect_uri=" + urlEncode(redirectUri)
                 + "&response_type=code"
-                + "&scope=identify%20guilds.members.read";
+                + "&scope=identify%20guilds.members.read"
+                + "&state=" + urlEncode(state);
     }
 
     public String exchangeCodeForToken(String code, String redirectUri) throws IOException {

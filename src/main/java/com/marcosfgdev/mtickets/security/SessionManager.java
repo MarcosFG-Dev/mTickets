@@ -4,22 +4,29 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 public class SessionManager {
 
-    private final Map<String, SessionUser> sessions;
+    private final Map<String, SessionEntry> sessions;
+    private final Map<String, Long> oauthStates;
     private final SecureRandom random;
+    private final long sessionTtlMillis;
+    private final long stateTtlMillis;
 
-    public SessionManager() {
+    public SessionManager(long sessionTtlSeconds, long stateTtlSeconds) {
         this.sessions = new ConcurrentHashMap<>();
+        this.oauthStates = new ConcurrentHashMap<>();
         this.random = new SecureRandom();
+        this.sessionTtlMillis = TimeUnit.SECONDS.toMillis(Math.max(60L, sessionTtlSeconds));
+        this.stateTtlMillis = TimeUnit.SECONDS.toMillis(Math.max(60L, stateTtlSeconds));
     }
 
     public String createSession(SessionUser user) {
         String token = generateToken();
-        sessions.put(token, user);
-        System.out.println("[mTickets Session] Criada sessao para " + user.getUsername() + " (Token: "
-                + token.substring(0, 10) + "...)");
+        long expiresAt = System.currentTimeMillis() + sessionTtlMillis;
+        user.setExpiresAt(expiresAt);
+        sessions.put(token, new SessionEntry(user, expiresAt));
         return token;
     }
 
@@ -27,16 +34,16 @@ public class SessionManager {
         if (token == null)
             return null;
 
-        SessionUser user = sessions.get(token);
-        if (user == null)
+        SessionEntry entry = sessions.get(token);
+        if (entry == null)
             return null;
 
-        if (user.isExpired()) {
+        if (entry.isExpired()) {
             sessions.remove(token);
             return null;
         }
 
-        return user;
+        return entry.user;
     }
 
     public void invalidateSession(String token) {
@@ -47,11 +54,41 @@ public class SessionManager {
 
     public void cleanExpiredSessions() {
         sessions.entrySet().removeIf(entry -> entry.getValue().isExpired());
+        oauthStates.entrySet().removeIf(entry -> entry.getValue() < System.currentTimeMillis());
+    }
+
+    public String createOAuthState() {
+        String state = generateToken();
+        oauthStates.put(state, System.currentTimeMillis() + stateTtlMillis);
+        return state;
+    }
+
+    public boolean consumeOAuthState(String state) {
+        if (state == null || state.isEmpty()) {
+            return false;
+        }
+
+        Long expiresAt = oauthStates.remove(state);
+        return expiresAt != null && expiresAt >= System.currentTimeMillis();
     }
 
     private String generateToken() {
         byte[] bytes = new byte[32];
         random.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private static class SessionEntry {
+        private final SessionUser user;
+        private final long expiresAt;
+
+        private SessionEntry(SessionUser user, long expiresAt) {
+            this.user = user;
+            this.expiresAt = expiresAt;
+        }
+
+        private boolean isExpired() {
+            return System.currentTimeMillis() > expiresAt;
+        }
     }
 }

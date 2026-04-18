@@ -17,6 +17,9 @@ import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 public class MTicketsPlugin extends JavaPlugin {
@@ -30,6 +33,7 @@ public class MTicketsPlugin extends JavaPlugin {
     private DiscordBotService discordBotService;
     private WebServer webServer;
     private TicketListListener ticketListListener;
+    private ExecutorService serviceExecutor;
 
     @Override
     public void onEnable() {
@@ -45,12 +49,17 @@ public class MTicketsPlugin extends JavaPlugin {
         }
 
         ticketManager = new TicketManager(this, database);
-        sessionManager = new SessionManager();
+        long sessionTtl = getConfig().getLong("web.session.ttl-seconds", 86400L);
+        long oauthStateTtl = getConfig().getLong("web.session.oauth-state-ttl-seconds", 300L);
+        sessionManager = new SessionManager(sessionTtl, oauthStateTtl);
+        serviceExecutor = Executors.newSingleThreadExecutor(r -> new Thread(r, "mTickets-Service"));
+        Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> sessionManager.cleanExpiredSessions(), 20L * 60L,
+                20L * 60L);
 
         if (getConfig().getBoolean("discord.enabled", true)) {
             discordService = new DiscordOAuthService(this);
             discordBotService = new DiscordBotService(this);
-            new Thread(() -> discordBotService.start()).start();
+            serviceExecutor.submit(() -> discordBotService.startWithRetry());
         }
 
         ticketListListener = new TicketListListener(this);
@@ -81,6 +90,8 @@ public class MTicketsPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        Bukkit.getScheduler().cancelTasks(this);
+
         if (discordBotService != null) {
             discordBotService.shutdown();
         }
@@ -96,6 +107,18 @@ public class MTicketsPlugin extends JavaPlugin {
 
         if (database != null) {
             database.close();
+        }
+
+        if (serviceExecutor != null) {
+            serviceExecutor.shutdownNow();
+            try {
+                if (!serviceExecutor.awaitTermination(3, TimeUnit.SECONDS)) {
+                    getLogger().warning("Executor de servicos nao finalizou no tempo esperado.");
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            serviceExecutor = null;
         }
 
         log("&c&l[mTickets] &cPlugin desativado.");
