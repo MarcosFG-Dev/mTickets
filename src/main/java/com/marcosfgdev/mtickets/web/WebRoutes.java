@@ -21,6 +21,9 @@ public class WebRoutes implements HttpHandler {
 
     private final MTicketsPlugin plugin;
     private final RateLimiter rateLimiter;
+    private static final int MAX_PER_PAGE = 50;
+    private static final int MAX_PAGE = 1000;
+    private static final int DEFAULT_MAX_MESSAGE_LENGTH = 1000;
 
     public WebRoutes(MTicketsPlugin plugin) {
         this.plugin = plugin;
@@ -198,8 +201,8 @@ public class WebRoutes implements HttpHandler {
         }
 
         Map<String, String> params = parseQuery(exchange.getRequestURI().getQuery());
-        int page = parseInt(params.get("page"), 1);
-        int perPage = parseInt(params.get("perPage"), 20);
+        int page = clamp(parseInt(params.get("page"), 1), 1, MAX_PAGE);
+        int perPage = clamp(parseInt(params.get("perPage"), 20), 1, MAX_PER_PAGE);
 
         List<Ticket> tickets = plugin.getTicketManager().getAllTickets(page, perPage);
         int total = plugin.getTicketManager().getTotalTicketCount();
@@ -255,7 +258,16 @@ public class WebRoutes implements HttpHandler {
                 return;
             }
 
-            plugin.getTicketManager().addReply(id, user.getUsername(), "STAFF", message);
+            String normalizedMessage = message.trim();
+            int maxMessageLength = plugin.getConfig().getInt("web.max-message-length", DEFAULT_MAX_MESSAGE_LENGTH);
+            maxMessageLength = maxMessageLength <= 0 ? DEFAULT_MAX_MESSAGE_LENGTH : maxMessageLength;
+
+            if (normalizedMessage.length() > maxMessageLength) {
+                sendError(exchange, 400, "Mensagem muito longa. Limite: " + maxMessageLength + " caracteres");
+                return;
+            }
+
+            plugin.getTicketManager().addReply(id, user.getUsername(), "STAFF", normalizedMessage);
             sendJson(exchange, "{\"success\": true}");
 
         } catch (Exception e) {
@@ -329,6 +341,10 @@ public class WebRoutes implements HttpHandler {
         } catch (NumberFormatException e) {
             return defaultValue;
         }
+    }
+
+    private int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     private String readBody(HttpExchange exchange) throws IOException {
